@@ -1,0 +1,1 @@
+ source ./venv-pycsp3/bin/activate

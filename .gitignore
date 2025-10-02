@@ -1,0 +1,11 @@
+# Environnement virtuel
+venv-pycsp3/
+
+# Fichiers temporaires Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Fichiers système
+.DS_Store
