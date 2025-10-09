@@ -1,0 +1,53 @@
+
+[93mACE v2.5 [0m
+
+  [94minstance[0m
+    name:m1_classique
+    args:m1_classique.xml
+
+ [33m...Loading[0m variables
+
+ [33m...Loading[0m constraints
+
+  [94mdomains[0m
+    types:1  values:1 521  sizes:[39:39]
+  [94mvariables[0m
+    count:39  arrays:[x:39]  degrees:[1:39]
+  [94mconstraints[0m
+    count:1  specific:1  arities:[39:1]
+    distribution:[AllDifferentComplete:1]
+    wck:0.08  cpu:0.345  mem:14M193
+
+ [33m...Building[0m solver
+
+  [94msolver[0m
+    guaranteedAC:true
+    wck:0.09  cpu:0.357  mem:19M102
+
+  [94mpreprocessing[0m
+    values:1 521  unsat:false
+    cpu:0.358  mem:19M102
+
+  [94msearch[0m
+    run1  dpts:-1..38  effs:38  wck:0.00  sols:1
+
+  [94mglobal[0m
+    effs:38
+    stop:REACHED_GOAL  sols:1  sol1Cpu:0,363
+    wck:0.10  cpu:0.365  mem:19M815
+
+
+  Solution 1 in JSON format:
+   {'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]}
+
+[92ms SATISFIABLE[0m
+[92m
+v[0m  <instantiation id='sol1' type='solution'> <list> x[] </list> <values> 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 </values> </instantiation>
+[92m
+d WRONG DECISIONS[0m  0
+[92md FOUND SOLUTIONS[0m  1
+[92md WCK FIRST[0m 0.10
+[92md WCK LAST[0m  0.10
+[91md INCOMPLETE EXPLORATION[0m
+
+c real time : 0.369

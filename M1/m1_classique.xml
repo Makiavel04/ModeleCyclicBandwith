@@ -1,0 +1,23 @@
+<instance format="XCSP3" type="COP">
+  <variables>
+    <array id="x" size="[6]"> 1..6 </array>
+    <array id="aux_gb" note="aux_gb[i] is the ith auxiliary variable having been automatically introduced" size="[5]"> 0..5 </array>
+  </variables>
+  <constraints>
+    <allDifferent> x[] </allDifferent>
+    <group>
+      <minimum>
+        <list> %0 %1 </list>
+        <condition> (eq,%2) </condition>
+      </minimum>
+      <args> dist(x[0],x[3]) sub(6,dist(x[0],x[3])) aux_gb[0] </args>
+      <args> dist(x[0],x[5]) sub(6,dist(x[0],x[5])) aux_gb[1] </args>
+      <args> dist(x[1],x[4]) sub(6,dist(x[1],x[4])) aux_gb[2] </args>
+      <args> dist(x[2],x[5]) sub(6,dist(x[2],x[5])) aux_gb[3] </args>
+      <args> dist(x[3],x[4]) sub(6,dist(x[3],x[4])) aux_gb[4] </args>
+    </group>
+  </constraints>
+  <objectives>
+    <minimize type="maximum"> aux_gb[] </minimize>
+  </objectives>
+</instance>

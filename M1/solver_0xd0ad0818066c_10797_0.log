@@ -1,0 +1,61 @@
+
+[93mACE v2.5 [0m
+
+  [94minstance[0m
+    name:m1_classique
+    args:m1_classique.xml
+
+ [33m...Loading[0m variables
+
+ [33m...Loading[0m constraints
+
+  [94mdomains[0m
+    types:2  values:50  sizes:[5:10]
+  [94mvariables[0m
+    count:10  auxiliary:5  arrays:[x:5,_ax_:5]  degrees:[2:1,3:8,4:1]
+  [94mconstraints[0m
+    count:8  converted:5  specific:8  arities:[3:5,5:3]
+    distribution:[AllDifferentComplete:1,CT-Table:5,MaximumCstGE:1,MaximumCstLE:1]
+    tables:[25:5]  tuples:125
+    extStructures:(1,shared:4)
+    wck:0.10  cpu:0.378  mem:16M416
+  [94mobjective[0m
+    way:min  type:MaximumCstLE  arity:5  bounds:0..4
+
+ [33m...Building[0m solver
+
+  [94msolver[0m
+    guaranteedAC:true
+    wck:0.11  cpu:0.388  mem:22M37
+
+  [94mpreprocessing[0m
+    effs:5  values:40  removedByAC:10  unsat:false
+    cpu:0.389  mem:22M37
+
+  [94msearch[0m
+[92mo 2[0m   0.11  ham=0 (0 0 0)  opth=0
+    run1  dpts:0..4  effs:99  fails:6  wrgs:11  wck:0.00  sols:1  bound:2
+
+  [94mglobal[0m
+    effs:99
+    stop:FULL_EXPLORATION  wrgs:11  bound:2  boundWck:0,112  sols:1  sol1Cpu:0,389
+    wck:0.12  cpu:0.396  mem:22M37
+
+
+  Solution 1 in JSON format:
+   {
+    x: [1, 2, 3, 4, 5]
+   }
+
+[92ms OPTIMUM FOUND[0m
+[92m
+v[0m  <instantiation id='sol1' type='solution' cost='2'> <list> x[] </list> <values> 1 2 3 4 5 </values> </instantiation>
+[92m
+d WRONG DECISIONS[0m  11
+[92md FOUND SOLUTIONS[0m  1
+[92md BOUND[0m  2
+[92md WCK FIRST[0m 0.11 (2)
+[92md WCK LAST[0m  0.11 (2)
+[92md COMPLETE EXPLORATION[0m
+
+c real time : 0.399

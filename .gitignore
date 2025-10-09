@@ -1,6 +1,6 @@
 # Environnement virtuel
 venv-pycsp3/
-
+.idea/
 # Fichiers temporaires Python
 __pycache__/
 *.pyc
