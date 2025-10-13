@@ -1,5 +1,5 @@
 import argparse
-import sys
+
 from pycsp3 import *
 
 def lire_graphe(nomFic : str):
@@ -28,7 +28,7 @@ def dist_cyclique(i, j):
     return min( abs(i - j), n - abs(i - j) )
 
 if __name__ == "__main__":
-    # Parse les arguments
+    #Parse les arguments
     parser = argparse.ArgumentParser(description="Mon script avec options.")
     # Option trace
     parser.add_argument(
@@ -42,10 +42,17 @@ if __name__ == "__main__":
         default="testSimple.mtx.rnd",
         help="Nom du fichier à traiter (défaut : testSimple.mtx.rnd)")
 
-    # Attribue les arguments
+    # Option pour spécifier la borne k
+    parser.add_argument(
+        "-k", "--kval",
+        default=None,
+        help="Borne de satisfaction du cyclic bandwith (défaut : n/2")
+
+
+    #Attribue les arguments
     args = parser.parse_args()
-    trace: bool = args.trace
-    nomFichier: str = args.fichier
+    trace : bool = args.trace
+    nomFichier : str = args.fichier
 
     #Lecture du graphe
     noeuds, arcs = lire_graphe(nomFichier)
@@ -56,19 +63,19 @@ if __name__ == "__main__":
 
     #Création des variables et des paramètres
     x = VarArray(size=n, dom=range(1, n+1))
+    k = args.kval if args.kval is not None else n // 2
+
+
+    #Définition des couples d'étiquettes respectants la distance imposé par la borne k.
+    couples_etiquettes_possibles = [(i, j) for i in range(1, n + 1) for j in range(1, n + 1) if (i != j) and dist_cyclique(i,j)<=k]
 
     #Définition des contraintes
     satisfy(
-        AllDifferent(x),
+        AllDifferent(x), #[x in permutations]
+        [ (x[u-1], x[v-1]) in couples_etiquettes_possibles for (u,v) in arcs ]
     )
 
-    # Ajout du paramètre d'optimisation
-    distances = [ Minimum( dist_cyclique(x[u-1], x[v-1]) ) for u,v in arcs]
-    minimize(
-        Maximum(distances)
-    )
-
-    # Résolution
+    #Résolution
     result = solve()
 
     # Affichage du résultat
