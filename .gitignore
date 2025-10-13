@@ -9,3 +9,4 @@ __pycache__/
 
 # Fichiers système
 .DS_Store
+*.log
