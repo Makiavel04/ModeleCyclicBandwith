@@ -106,6 +106,9 @@ if __name__ == "__main__":
                  for i, l in aretes:
                     cnf.append([-x(i,j), -x(l,m)])
 
+    #4-Rompre les symétries
+    cnf.append([x(1,1)])
+
     solver = Glucose3()
 
     # Ajouter toutes les clauses du CNF
@@ -114,6 +117,7 @@ if __name__ == "__main__":
 
 
     sat = solver.solve()
+
     if sat:
         print("SATISFIABLE !")
         model = solver.get_model()  # retourne une liste d'entiers : positif = variable vraie, négatif = fausse

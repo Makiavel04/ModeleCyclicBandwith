@@ -1,30 +1,39 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import argparse
 
 from pycsp3 import *
 
-def lire_graphe(nomFic : str):
+def lire_graphe(nomFichier : str):
+    """
+    Lit un graphe depuis un fichier mtx.rnd .
+
+    :param nomFichier: nom du fichier à lire
+    :returns un couple:
+        - noeuds : liste des sommets [1..n]
+        - arcs : liste des tuples (u,v)
+    """
     arcs = []#liste des arcs
 
-    with open(nomFic, "r") as f:
-        f.readline() #Saute les 2 premières lignes
-        n, m, a = map(int, f.readline().split())
+    with open(nomFichier, "r") as f:
+        f.readline() #Saute la premiere ligne premières lignes
+        n, _, _ = map(int, f.readline().split()) #Recupère le nombre de noeuds n.
         for line in f:
-            #print(line)
-            u, v = map(int, line.split())
-            #split utilise de bas le " " et separe en tableau ["x", "y"]
-            #map remet chaque val en int
-            #tableau se distribue auto entre u et v
+            u, v = map(int, line.split()) # Chaque ligne comporte les 2 noeuds d'un arc
             arcs.append((u,v))
-
-        # n = max( max(u,v) for u,v in arcs ) #nb de noeuds
-        # #max(u,v) for u,v in arcs : fait une liste des maxs de chaque tuples
-        # #et après on récupère le max de tout ça
 
         noeuds = [i for i in range(1, n+1)]
 
         return (noeuds, arcs)
 
 def dist_cyclique(i, j):
+    """
+    Calcul la distance cyclique entre 2 noeuds selon leur étiquette.
+
+    :param i: étiquette du premier noeud
+    :param j: étiquette du deuxième noeud
+    return : poids de l'arc
+    """
     return min( abs(i - j), n - abs(i - j) )
 
 if __name__ == "__main__":
@@ -63,8 +72,7 @@ if __name__ == "__main__":
 
     #Création des variables et des paramètres
     x = VarArray(size=n, dom=range(1, n+1))
-    k = args.kval if args.kval is not None else n // 2
-
+    k = args.kval if args.kval is not None else n // 2 #Si on a definit le k dans les arguments on prend cette valeur sinon on met n/2
 
     #Définition des couples d'étiquettes respectants la distance imposé par la borne k.
     couples_etiquettes_possibles = [(i, j) for i in range(1, n + 1) for j in range(1, n + 1) if (i != j) and dist_cyclique(i,j)<=k]
@@ -81,13 +89,24 @@ if __name__ == "__main__":
     # Affichage du résultat
     if result is SAT:
         print("Sat :")
-        print("Valeurs des étiquettes :", values(x))
-        print("Valeur du cyclique bandwith pour ce nommage :", max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
+        print("Valeurs des étiquettes :")
+        i = 1
+        for e in values(x):
+            print("Sommet v_" + str(i) + " -> Étiquette", e)
+            i+=1
+
+        print("Valeur du cyclique bandwith pour ce nommage :",
+              max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
     elif result is UNSAT:
         print("Unsat : problème non résolu.")
     elif result is OPTIMUM:
         print("Optimum")
-        print("Valeurs des étiquettes :", values(x))
-        print("Valeur du cyclique bandwith pour ce nommage :", max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
+        print("Valeurs des étiquettes :")
+        i = 1
+        for e in values(x):
+            print("Sommet v_" + str(i) + " -> Étiquette", e)
+            i+=1
+        print("Valeur du cyclique bandwith pour ce nommage :",
+              max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
     else:
         print("Pas de retour du solveur. ")

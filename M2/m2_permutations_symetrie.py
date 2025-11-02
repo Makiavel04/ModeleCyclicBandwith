@@ -75,8 +75,8 @@ if __name__ == "__main__":
     x = VarArray(size=n, dom=range(1, n+1))
     k = args.kval if args.kval is not None else n // 2 #Si on a definit le k dans les arguments on prend cette valeur sinon on met n/2
 
-    #Toutes les étiquettes doivent être différentes
-    permutations = list(itertools.permutations(range(1,n+1)))
+    #Toutes les étiquettes doivent être différentes et on fixe la première à 1
+    permutations = [(1,) + p for p in itertools.permutations(range(2, n+1))]
 
     #Définition des couples d'étiquettes respectants la distance imposé par la borne k.
     couples_etiquettes_possibles = [(i, j) for i in range(1, n + 1) for j in range(1, n + 1) if (i != j) and dist_cyclique(i,j)<=k]
@@ -95,10 +95,11 @@ if __name__ == "__main__":
         print("Valeurs des étiquettes :")
         i = 1
         for e in values(x):
-            print("Sommet v_"+str(i)+" -> Étiquette", e)
+            print("Sommet v_" + str(i) + " -> Étiquette", e)
             i+=1
 
-        print("Valeur du cyclique bandwith pour ce nommage :", max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
+        print("Valeur du cyclique bandwith pour ce nommage :",
+              max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
     elif result is UNSAT:
         print("Unsat : problème non résolu.")
     elif result is OPTIMUM:
@@ -108,6 +109,7 @@ if __name__ == "__main__":
         for e in values(x):
             print("Sommet v_" + str(i) + " -> Étiquette", e)
             i+=1
-        print("Valeur du cyclique bandwith pour ce nommage :", max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
+        print("Valeur du cyclique bandwith pour ce nommage :",
+              max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
     else:
         print("Pas de retour du solveur. ")
