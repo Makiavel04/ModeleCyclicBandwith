@@ -83,6 +83,7 @@ if __name__ == "__main__":
     # Affichage du résultat
     if result is UNSAT:
         if trace:print("Unsat : problème non résolu.")
+        sys.exit(1) #Code retour insatisfiable
     elif result is OPTIMUM:
         if trace:
             print("Optimum")
@@ -93,6 +94,7 @@ if __name__ == "__main__":
                 i+=1
             print("Valeur du cyclique bandwith pour ce nommage :",
                   max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in aretes]))
+        sys.exit(0)  # Code retour ok
     else:
-
         if trace : print("Pas de retour du solveur. ")
+        sys.exit(2)  # Code retour erreur quelconque

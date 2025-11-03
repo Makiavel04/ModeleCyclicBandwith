@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from pysat.formula import CNF
 from pysat.solvers import Glucose3
@@ -134,7 +135,9 @@ if __name__ == "__main__":
             print("Étiquetage trouvé :")
             for i in sorted(etiquettes.keys()):
                 print("Sommet v_"+str(i)+" -> Étiquette", etiquettes[i])
+        sys.exit(0)  # Code retour ok
     else:
         if trace: print("INSATISFIABLE")
+        sys.exit(1) #Code retour insatisfiable
 
 
