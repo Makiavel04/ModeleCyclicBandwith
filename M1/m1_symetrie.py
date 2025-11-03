@@ -11,20 +11,20 @@ def lire_graphe(nomFichier : str):
     :param nomFichier: nom du fichier à lire
     :returns un couple:
         - noeuds : liste des sommets [1..n]
-        - arcs : liste des tuples (u,v)
+        - aretes : liste des tuples (u,v)
     """
-    arcs = []#liste des arcs
+    aretes = []#liste des aretes
 
     with open(nomFichier, "r") as f:
         f.readline() #Saute la premiere ligne premières lignes
         n, _, _ = map(int, f.readline().split()) #Recupère le nombre de noeuds n.
         for line in f:
             u, v = map(int, line.split()) # Chaque ligne comporte les 2 noeuds d'un arc
-            arcs.append((u,v))
+            aretes.append((u,v))
 
         noeuds = [i for i in range(1, n+1)]
 
-        return (noeuds, arcs)
+        return (noeuds, aretes)
 
 def dist_cyclique(i, j):
     """
@@ -57,11 +57,11 @@ if __name__ == "__main__":
     nomFichier: str = args.fichier
 
     #Lecture du graphe
-    noeuds, arcs = lire_graphe(nomFichier)
+    noeuds, aretes = lire_graphe(nomFichier)
     n = len(noeuds)
     if trace :
         print("noeuds ("+str(n)+") :",noeuds)
-        print("arcs :",arcs)
+        print("aretes :",aretes)
 
     #Création des variables et des paramètres
     x = VarArray(size=n, dom=range(1, n+1))
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     )
 
     # Ajout du paramètre d'optimisation
-    distances = [ Minimum( dist_cyclique(x[u-1], x[v-1]) ) for u,v in arcs]
+    distances = [ Minimum( dist_cyclique(x[u-1], x[v-1]) ) for u,v in aretes]
     minimize(
         Maximum(distances)
     )
@@ -82,26 +82,17 @@ if __name__ == "__main__":
     result = solve()
 
     # Affichage du résultat
-    if result is SAT:
-        print("Sat :")
-        print("Valeurs des étiquettes :")
-        i = 1
-        for e in values(x):
-            print("Sommet v_" + str(i) + " -> Étiquette", e)
-            ++i
-
-        print("Valeur du cyclique bandwith pour ce nommage :",
-              max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
-    elif result is UNSAT:
-        print("Unsat : problème non résolu.")
+    if result is UNSAT:
+        if trace:print("Unsat : problème non résolu.")
     elif result is OPTIMUM:
-        print("Optimum")
-        print("Valeurs des étiquettes :")
-        i = 1
-        for e in values(x):
-            print("Sommet v_" + str(i) + " -> Étiquette", e)
-            ++i
-        print("Valeur du cyclique bandwith pour ce nommage :",
-              max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in arcs]))
+        if trace:
+            print("Optimum")
+            print("Valeurs des étiquettes :")
+            i = 1
+            for e in values(x):
+                print("Sommet v_" + str(i) + " -> Étiquette", e)
+                i = i + 1
+            print("Valeur du cyclique bandwith pour ce nommage :",
+                  max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in aretes]))
     else:
-        print("Pas de retour du solveur. ")
+        if trace:print("Pas de retour du solveur. ")

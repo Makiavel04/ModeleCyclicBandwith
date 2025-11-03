@@ -75,8 +75,9 @@ if __name__ == "__main__":
     sommets, aretes = lire_graphe(nomFichier)
     n = len(sommets)
 
-    print("sommets ("+str(n)+") :",sommets)
-    print("aretes :",aretes)
+    if trace :
+        print("sommets ("+str(n)+") :",sommets)
+        print("aretes :",aretes)
 
     cnf = CNF()
     k = args.kval if args.kval is not None else n // 2 #Si on a definit le k dans les arguments on prend cette valeur sinon on met n/2
@@ -119,20 +120,21 @@ if __name__ == "__main__":
     sat = solver.solve()
 
     if sat:
-        print("SATISFIABLE !")
-        model = solver.get_model()  # retourne une liste d'entiers : positif = variable vraie, négatif = fausse
-        # Extraire les étiquettes assignées
-        etiquettes = {}
-        for v in model:
-            if v > 0:  # variables vraies
-                # Décoder i et j depuis x(i,j)
-                i = (v-1)//n + 1
-                j = (v-1) % n + 1
-                etiquettes[i] = j
-        print("Étiquetage trouvé :")
-        for i in sorted(etiquettes.keys()):
-            print("Sommet v_"+str(i)+" -> Étiquette", etiquettes[i])
+        if trace:
+            print("SATISFIABLE !")
+            model = solver.get_model()  # retourne une liste d'entiers : positif = variable vraie, négatif = fausse
+            # Extraire les étiquettes assignées
+            etiquettes = {}
+            for v in model:
+                if v > 0:  # variables vraies
+                    # Décoder i et j depuis x(i,j)
+                    i = (v-1)//n + 1
+                    j = (v-1) % n + 1
+                    etiquettes[i] = j
+            print("Étiquetage trouvé :")
+            for i in sorted(etiquettes.keys()):
+                print("Sommet v_"+str(i)+" -> Étiquette", etiquettes[i])
     else:
-        print("INSATISFIABLE")
+        if trace: print("INSATISFIABLE")
 
 

@@ -52,12 +52,6 @@ if __name__ == "__main__":
         default="testSimple.mtx.rnd",
         help="Nom du fichier à traiter (défaut : testSimple.mtx.rnd)")
 
-    # Option pour spécifier la borne k
-    parser.add_argument(
-        "-k", "--kval",
-        default=None,
-        help="Borne de satisfaction du cyclic bandwith (défaut : n/2")
-
 
     #Attribue les arguments
     args = parser.parse_args()
@@ -67,41 +61,59 @@ if __name__ == "__main__":
     #Lecture du graphe
     noeuds, aretes = lire_graphe(nomFichier)
     n = len(noeuds)
-    if trace:
+    if trace :
         print("noeuds ("+str(n)+") :",noeuds)
         print("aretes :",aretes)
 
     #Création des variables et des paramètres
-    x = VarArray(size=n, dom=range(1, n+1))
-    k = args.kval if args.kval is not None else n // 2 #Si on a definit le k dans les arguments on prend cette valeur sinon on met n/2
+    k_low = 1
+    k_high = n // 2
+    k = k_low + k_high // 2 #Borne de départ
+    old_k = -1
+    old_etiquettes = []
 
-    #Toutes les étiquettes doivent être différentes et on fixe la première à 1
-    permutations = [(1,) + p for p in itertools.permutations(range(2, n+1))]
+    # Toutes les étiquettes doivent être différentes et on fixe la première à 1
+    permutations = [(1,) + p for p in itertools.permutations(range(2, n + 1))] #Ne dépend pas de k donc peut être défini avant.
 
-    #Définition des couples d'étiquettes respectants la distance imposé par la borne k.
-    couples_etiquettes_possibles = [(i, j) for i in range(1, n + 1) for j in range(1, n + 1) if (i != j) and dist_cyclique(i,j)<=k]
+    while k>=1 and k_low<=k_high:
+        x = VarArray(size=n, dom=range(1, n + 1))
 
-    satisfy(
-        [x in permutations],
-        [ (x[u-1], x[v-1]) in couples_etiquettes_possibles for (u,v) in aretes ]
-    )
+        #Définition des couples d'étiquettes respectants la distance imposé par la borne k.
+        couples_etiquettes_possibles = [(i, j) for i in range(1, n + 1) for j in range(1, n + 1) if (i != j) and dist_cyclique(i,j)<=k]
 
-    # Résolution
-    result = solve()
+        satisfy(
+            [x in permutations],
+            [ (x[u-1], x[v-1]) in couples_etiquettes_possibles for (u,v) in aretes ]
+        )
+
+        # Résolution
+        result = solve()
+
+        if result is SAT:
+            if trace : print("Sat pour", k)
+            old_k = k
+            old_etiquettes = values(x)
+            k_high = k - 1
+            k = k_low + k_high // 2
+
+        elif result is UNSAT:
+            if trace : print("Unsat : problème non résolu pour", k)
+            k_low = k + 1
+            k = k_low + k_high // 2
+        else:
+            if trace : print("Pas de retour du solveur. ")
+            break
+
+        clear()  # Réinitialise les éléments pycsp3 pour pouvoir relancer
 
     # Affichage du résultat
-    if result is SAT:
-        if trace:
-            print("Sat :")
-            print("Valeurs des étiquettes :")
-            i = 1
-            for e in values(x):
-                print("Sommet v_" + str(i) + " -> Étiquette", e)
-                i+=1
+    if trace :
+        print("Valeurs des étiquettes :")
+        i = 1
+        for e in old_etiquettes:
+            print("Sommet v_" + str(i) + " -> Étiquette", e)
+            i += 1
 
-            print("Valeur du cyclique bandwith pour ce nommage :",
-                  max([dist_cyclique(values(x)[u - 1], values(x)[v - 1]) for (u, v) in aretes]))
-    elif result is UNSAT:
-        if trace: print("Unsat : problème non résolu.")
-    else:
-        if trace: print("Pas de retour du solveur. ")
+        print("Valeur du cyclique bandwith pour ce nommage :",
+              max([dist_cyclique(old_etiquettes[u - 1], old_etiquettes[v - 1]) for (u, v) in aretes]))
+        print("k trouvé :", old_k)

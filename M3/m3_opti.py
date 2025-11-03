@@ -79,58 +79,85 @@ if __name__ == "__main__":
         print("sommets (" + str(n) + ") :", sommets)
         print("aretes :", aretes)
 
-    cnf = CNF()
-    k = args.kval if args.kval is not None else n // 2 #Si on a definit le k dans les arguments on prend cette valeur sinon on met n/2
+
+    tmp = []
+    k = n // 2 # Borne de départ
+    old_k = -1
+    old_etiquettes = []
+    limite = False
 
     #1-Une seule étiquette par sommets
     for i in sommets : #Pour tous les noeuds v_i
         #Au moins une étiquette par sommet
-        cnf.append([x(i,j) for j in range(1, n+1)])
+        tmp.append([x(i,j) for j in range(1, n+1)])
 
         #Au maximum une étiquette par sommet
         #On fait tous les couples de valeurs de l'etiquette de v_i, et on vérifie qu'au moins une valeur du couple n'est pas séléctionnée. Pour éviter d'avoir 2 valeurs d'étiquettes sur v_i
         for j in range(1, n+1) :
             for j2 in range(j+1,n+1) :
-                cnf.append([-x(i,j),-x(i,j2)])
+                tmp.append([-x(i,j),-x(i,j2)])
 
     #2-Toutes les étiquettes sont différentes
     for j in range(1, n+1):#Pour toutes les valeurs d'étiquettes j
-        cnf.append([x(i,j) for i in range(1, n+1)]) #Toutes les étiquettes ont au moins un noeud
+        tmp.append([x(i,j) for i in range(1, n+1)]) #Toutes les étiquettes ont au moins un noeud
         for i in range(1, n+1) :
             for i2 in range(i+1, n+1):
-                cnf.append([-x(i,j), -x(i2,j)])
+                tmp.append([-x(i,j), -x(i2,j)])
 
-    #3-Valeur de cyclic bandwidth
-    for j in range(1,n+1):
-         for m in range(1,n+1):
-             if j!=m and dist_cyclique(j, m)>k : #Pour toutes les paires d'etiquettes ne respectant la distance cyclique, on empeche les sommets des arêtes d'avoir ces paires d'étiquettes.
-                 for i, l in aretes:
-                    cnf.append([-x(i,j), -x(l,m)])
+    # 4-Rompre les symétries
+    tmp.append([x(1, 1)])
 
-    solver = Glucose3()
+    while not limite :
+        cnf = CNF()
 
-    # Ajouter toutes les clauses du CNF
-    for clause in cnf.clauses:
-        solver.add_clause(clause)
+        for clause in tmp :
+            cnf.append(clause)
 
+        #3-Valeur de cyclic bandwidth
+        for j in range(1,n+1):
+             for m in range(1,n+1):
+                 if j!=m and dist_cyclique(j, m)>k : #Pour toutes les paires d'etiquettes ne respectant la distance cyclique, on empeche les sommets des arêtes d'avoir ces paires d'étiquettes.
+                     for i, l in aretes:
+                        cnf.append([-x(i,j), -x(l,m)])
 
-    sat = solver.solve()
-    if sat:
-        if trace:
-            print("SATISFIABLE !")
-            model = solver.get_model()  # retourne une liste d'entiers : positif = variable vraie, négatif = fausse
-            # Extraire les étiquettes assignées
-            etiquettes = {}
-            for v in model:
-                if v > 0:  # variables vraies
-                    # Décoder i et j depuis x(i,j)
-                    i = (v-1)//n + 1
-                    j = (v-1) % n + 1
-                    etiquettes[i] = j
-            print("Étiquetage trouvé :")
-            for i in sorted(etiquettes.keys()):
-                print("Sommet v_"+str(i)+" -> Étiquette", etiquettes[i])
-    else:
-        if trace:print("INSATISFIABLE")
+        #4-Rompre les symétries
+        cnf.append([x(1,1)])
+
+        solver = Glucose3()
+
+        # Ajouter toutes les clauses du CNF
+        for clause in cnf.clauses:
+            solver.add_clause(clause)
 
 
+        sat = solver.solve()
+
+        if sat:
+            if trace:
+                print("sat pour", k)
+            old_k = k
+            old_etiquettes = solver.get_model()  # retourne une liste d'entiers : positif = variable vraie, négatif = fausse
+            if k<=1 :
+                limite = True
+            else :
+                k = k-1
+
+        else:
+            if trace:print("insatisfiable pour", k)
+            limite = True
+
+
+
+    # Extraire les étiquettes assignées
+    if trace :
+        etiquettes = {}
+        for v in old_etiquettes:
+            if v > 0:  # variables vraies
+                # Décoder i et j depuis x(i,j)
+                i = (v-1)//n + 1
+                j = (v-1) % n + 1
+                etiquettes[i] = j
+        print("Étiquetage trouvé :")
+        for i in sorted(etiquettes.keys()):
+            print("Sommet v_"+str(i)+" -> Étiquette", etiquettes[i])
+        print("Valeur de k :",old_k)
