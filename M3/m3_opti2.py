@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from pysat.formula import CNF
 from pysat.solvers import Glucose3
@@ -143,18 +144,19 @@ if __name__ == "__main__":
             k_low = k + 1
             k = k_low + k_high // 2
 
-
-
-    # Extraire les étiquettes assignées
-    if trace :
-        etiquettes = {}
-        for v in old_etiquettes:
-            if v > 0:  # variables vraies
-                # Décoder i et j depuis x(i,j)
-                i = (v-1)//n + 1
-                j = (v-1) % n + 1
-                etiquettes[i] = j
-        print("Étiquetage trouvé :")
-        for i in sorted(etiquettes.keys()):
-            print("Sommet v_"+str(i)+" -> Étiquette", etiquettes[i])
-        print("Valeur de k :",old_k)
+    if k==-1: sys.exit(1)
+    else:
+        # Extraire les étiquettes assignées
+        if trace :
+            etiquettes = {}
+            for v in old_etiquettes:
+                if v > 0:  # variables vraies
+                    # Décoder i et j depuis x(i,j)
+                    i = (v-1)//n + 1
+                    j = (v-1) % n + 1
+                    etiquettes[i] = j
+            print("Étiquetage trouvé :")
+            for i in sorted(etiquettes.keys()):
+                print("Sommet v_"+str(i)+" -> Étiquette", etiquettes[i])
+            print("Valeur de k :",old_k)
+        sys.exit(0)

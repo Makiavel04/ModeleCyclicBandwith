@@ -102,18 +102,22 @@ if __name__ == "__main__":
             k = k_low + k_high // 2
         else:
             if trace : print("Pas de retour du solveur. ")
-            break
+            sys.exit(2)
 
         clear()  # Réinitialise les éléments pycsp3 pour pouvoir relancer
 
-    # Affichage du résultat
-    if trace :
-        print("Valeurs des étiquettes :")
-        i = 1
-        for e in old_etiquettes:
-            print("Sommet v_" + str(i) + " -> Étiquette", e)
-            i += 1
+    if k == -1:
+        sys.exit(1)
+    else:
+        # Affichage du résultat
+        if trace:
+            print("Valeurs des étiquettes :")
+            i = 1
+            for e in old_etiquettes:
+                print("Sommet v_" + str(i) + " -> Étiquette", e)
+                i += 1
 
-        print("Valeur du cyclique bandwith pour ce nommage :",
-              max([dist_cyclique(old_etiquettes[u - 1], old_etiquettes[v - 1]) for (u, v) in aretes]))
-        print("k trouvé :", old_k)
+            print("Valeur du cyclique bandwith pour ce nommage :",
+                  max([dist_cyclique(old_etiquettes[u - 1], old_etiquettes[v - 1]) for (u, v) in aretes]))
+            print("k trouvé :", old_k)
+        sys.exit(0)

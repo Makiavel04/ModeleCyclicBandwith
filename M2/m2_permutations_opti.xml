@@ -1,4 +1,4 @@
-<instance format="XCSP3" type="kCSP">
+<instance format="XCSP3" type="CSP">
   <variables>
     <array id="x" size="[6]"> 1..6 </array>
   </variables>
