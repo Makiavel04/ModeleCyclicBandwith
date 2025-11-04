@@ -1,0 +1,5 @@
+Script,Graphe,Temps_moyen(s)
+m1.py,bcspwr01.mtx.rnd,1.1895
+m1_symetrie.py,bcspwr01.mtx.rnd,1.1307
+m2_alldiff_opti.py,bcspwr01.mtx.rnd,X
+m2_alldiff_opti2.py,bcspwr01.mtx.rnd,X

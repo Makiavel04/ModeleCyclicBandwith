@@ -1,5 +1,7 @@
 import argparse
+import math
 import sys
+from collections import deque
 
 from pysat.formula import CNF
 from pysat.solvers import Glucose3
@@ -45,6 +47,88 @@ def x(i, j):
     """
     return n*(i-1) + j
 
+def optimiser_k(sommets, aretes):
+    """
+    Calculer une borne supérieur optimisée du CB optimal, en O(m+n).
+    :param sommets: Sommets du graphe
+    :param aretes: Arêtes du graphe
+    :return: borne supérieur optimisée du CB optimal
+    """
+    n = len(sommets)
+    m = len(aretes)
+
+    # Calcul du degré et construction de la liste d'adjacence
+    degre = [0] * n
+    voisins = [[] for _ in range(n)]
+    for (u, v) in aretes:
+        degre[u - 1] += 1
+        degre[v - 1] += 1
+        voisins[u - 1].append(v - 1)
+        voisins[v - 1].append(u - 1)
+
+    nb_deg_1 = degre.count(1)
+    nb_deg_2 = degre.count(2)
+    max_deg = max(degre)
+
+    # Cas spéciaux
+    if all(d == n - 1 for d in degre):  # clique
+        return n // 2
+
+    if nb_deg_1 == n - 1 and max_deg == n - 1:  # étoile
+        return n // 2
+
+    if nb_deg_1 == 2 and nb_deg_2 == n - 2:  # chemin simple / chaîne
+        return 1
+
+    if nb_deg_2 == n:  # cycle
+        return 1
+
+    if m == n - 1:  # arbre général
+        return demi_diametre_arrondi(voisins)
+
+    # Cas général : heuristique selon densité
+    densite = (2 * m) / (n * (n - 1))
+    if densite < 0.1:
+        k = math.ceil(math.log2(n))
+    elif densite < 0.5:
+        k = math.ceil(n / 4)
+    else:
+        k = math.ceil(n / 2)
+
+    return k
+
+
+def demi_diametre_arrondi(voisins):
+    """
+    Calcule le diamètre du graphe (arbre) et retourne la moitié du diamètre arrondie à l'entier supérieur, pour servir de borne k pour le cyclic bandwidth.
+
+    :param voisins :
+    :return le diamètre du graphe, divisé par 2 et arrondi au supérieur
+    """
+
+    def bfs(sommet_depart: int) -> tuple[int, int]:
+        n = len(voisins)
+        distance = [-1] * n
+        distance[sommet_depart] = 0
+        file = deque([sommet_depart])
+        sommet_le_plus_loin = (0, sommet_depart)
+
+        while file:
+            v = file.popleft()
+            for w in voisins[v]:
+                if distance[w] == -1:
+                    distance[w] = distance[v] + 1
+                    file.append(w)
+                    if distance[w] > sommet_le_plus_loin[0]:
+                        sommet_le_plus_loin = (distance[w], w)
+
+        return sommet_le_plus_loin
+
+    # BFS deux fois pour trouver le diamètre
+    _, extremite = bfs(0)
+    diametre, _ = bfs(extremite)
+    return math.ceil(diametre / 2)
+
 if __name__ == "__main__":
     #Parse les arguments
     parser = argparse.ArgumentParser(description="Mon script avec options.")
@@ -59,13 +143,6 @@ if __name__ == "__main__":
         "-f", "--fichier",
         default="testSimple.mtx.rnd",
         help="Nom du fichier à traiter (défaut : testSimple.mtx.rnd)")
-
-    # Option pour spécifier la borne k
-    parser.add_argument(
-        "-k", "--kval",
-        default=None,
-        help="Borne de satisfaction du cyclic bandwith (défaut : n/2")
-
 
     #Attribue les arguments
     args = parser.parse_args()
@@ -83,13 +160,13 @@ if __name__ == "__main__":
 
     tmp = []
     k_low = 1
-    k_high = n // 2
+    k_high = optimiser_k(sommets, aretes)
     k = k_low + k_high // 2 # Borne de départ
     old_k = -1
     old_etiquettes = []
 
     #1-Une seule étiquette par sommets
-    for i in sommets : #Pour tous les noeuds v_i
+    for i in sommets : #Pour tous les sommets v_i
         #Au moins une étiquette par sommet
         tmp.append([x(i,j) for j in range(1, n+1)])
 
@@ -158,5 +235,5 @@ if __name__ == "__main__":
             print("Étiquetage trouvé :")
             for i in sorted(etiquettes.keys()):
                 print("Sommet v_"+str(i)+" -> Étiquette", etiquettes[i])
-            print("Valeur de k :",old_k)
+            print("CYCLIC_BANDWIDTH :", max([dist_cyclique(etiquettes[u], etiquettes[v]) for u,v in aretes]))
         sys.exit(0)

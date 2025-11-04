@@ -1,44 +1,129 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import argparse
+import math
+from collections import deque
 
 from pycsp3 import *
 
-def lire_graphe(nomFichier : str):
+
+def lire_graphe(nomFichier: str):
     """
     Lit un graphe depuis un fichier mtx.rnd .
 
     :param nomFichier: nom du fichier à lire
     :returns un couple:
-        - noeuds : liste des sommets [1..n]
+        - sommets : liste des sommets [1..n]
         - aretes : liste des tuples (u,v)
     """
-    aretes = []#liste des aretes
+    aretes = []  # liste des aretes
 
     with open(nomFichier, "r") as f:
-        f.readline() #Saute la premiere ligne premières lignes
-        n, _, _ = map(int, f.readline().split()) #Recupère le nombre de noeuds n.
+        f.readline()  # Saute la premiere ligne premières lignes
+        n, _, _ = map(int, f.readline().split())  # Recupère le nombre de sommets n.
         for line in f:
-            u, v = map(int, line.split()) # Chaque ligne comporte les 2 noeuds d'un arc
-            aretes.append((u,v))
+            u, v = map(int, line.split())  # Chaque ligne comporte les 2 sommets d'un arc
+            aretes.append((u, v))
 
-        noeuds = [i for i in range(1, n+1)]
+        sommets = [i for i in range(1, n + 1)]
 
-        return (noeuds, aretes)
+        return (sommets, aretes)
+
 
 def dist_cyclique(i, j):
     """
-    Calcul la distance cyclique entre 2 noeuds selon leur étiquette.
+    Calcul la distance cyclique entre 2 sommets selon leur étiquette.
 
     :param i: étiquette du premier noeud
     :param j: étiquette du deuxième noeud
     return : poids de l'arc
     """
-    return min( abs(i - j), n - abs(i - j) )
+    return min(abs(i - j), n - abs(i - j))
 
+def optimiser_k(sommets, aretes):
+    """
+    Calculer une borne supérieur optimisée du CB optimal, en O(m+n).
+    :param sommets: Sommets du graphe
+    :param aretes: Arêtes du graphe
+    :return: borne supérieur optimisée du CB optimal
+    """
+    n = len(sommets)
+    m = len(aretes)
+
+    # Calcul du degré et construction de la liste d'adjacence
+    degre = [0] * n
+    voisins = [[] for _ in range(n)]
+    for (u, v) in aretes:
+        degre[u - 1] += 1
+        degre[v - 1] += 1
+        voisins[u - 1].append(v - 1)
+        voisins[v - 1].append(u - 1)
+
+    nb_deg_1 = degre.count(1)
+    nb_deg_2 = degre.count(2)
+    max_deg = max(degre)
+
+    # Cas spéciaux
+    if all(d == n - 1 for d in degre):  # clique
+        return n // 2
+
+    if nb_deg_1 == n - 1 and max_deg == n - 1:  # étoile
+        return n // 2
+
+    if nb_deg_1 == 2 and nb_deg_2 == n - 2:  # chemin simple / chaîne
+        return 1
+
+    if nb_deg_2 == n:  # cycle
+        return 1
+
+    if m == n - 1:  # arbre général
+        return demi_diametre_arrondi(voisins)
+
+    # Cas général : heuristique selon densité
+    densite = (2 * m) / (n * (n - 1))
+    if densite < 0.1:
+        k = math.ceil(math.log2(n))
+    elif densite < 0.5:
+        k = math.ceil(n / 4)
+    else:
+        k = math.ceil(n / 2)
+
+    return k
+
+
+def demi_diametre_arrondi(voisins):
+    """
+    Calcule le diamètre du graphe (arbre) et retourne la moitié du diamètre arrondie à l'entier supérieur, pour servir de borne k pour le cyclic bandwidth.
+
+    :param voisins :
+    :return le diamètre du graphe, divisé par 2 et arrondi au supérieur
+    """
+
+    def bfs(sommet_depart: int) -> tuple[int, int]:
+        n = len(voisins)
+        distance = [-1] * n
+        distance[sommet_depart] = 0
+        file = deque([sommet_depart])
+        sommet_le_plus_loin = (0, sommet_depart)
+
+        while file:
+            v = file.popleft()
+            for w in voisins[v]:
+                if distance[w] == -1:
+                    distance[w] = distance[v] + 1
+                    file.append(w)
+                    if distance[w] > sommet_le_plus_loin[0]:
+                        sommet_le_plus_loin = (distance[w], w)
+
+        return sommet_le_plus_loin
+
+    # BFS deux fois pour trouver le diamètre
+    _, extremite = bfs(0)
+    diametre, _ = bfs(extremite)
+    return math.ceil(diametre / 2)
 
 if __name__ == "__main__":
-    #Parse les arguments
+    # Parse les arguments
     parser = argparse.ArgumentParser(description="Mon script avec options.")
     # Option trace
     parser.add_argument(
@@ -52,71 +137,68 @@ if __name__ == "__main__":
         default="testSimple.mtx.rnd",
         help="Nom du fichier à traiter (défaut : testSimple.mtx.rnd)")
 
-
-    #Attribue les arguments
+    # Attribue les arguments
     args = parser.parse_args()
-    trace : bool = args.trace
-    nomFichier : str = args.fichier
+    trace: bool = args.trace
+    nomFichier: str = args.fichier
 
-    #Lecture du graphe
-    noeuds, aretes = lire_graphe(nomFichier)
-    n = len(noeuds)
-    if trace :
-        print("noeuds ("+str(n)+") :",noeuds)
-        print("aretes :",aretes)
+    # Lecture du graphe
+    sommets, aretes = lire_graphe(nomFichier)
+    n = len(sommets)
+    if trace:
+        print("sommets (" + str(n) + ") :", sommets)
+        print("aretes :", aretes)
 
-    #Création des variables et des paramètres
+    # Création des variables et des paramètres
     k_low = 1
-    k_high = n // 2
-    k = k_low + k_high // 2 #Borne de départ
+    k_high = optimiser_k(sommets, aretes)
+    k = k_low + k_high // 2  # Borne de départ
     old_k = -1
     old_etiquettes = []
 
-    while k>=1 and k_low<=k_high:
+    while k >= 1 and k_low <= k_high:
         x = VarArray(size=n, dom=range(1, n + 1))
 
-        #Définition des couples d'étiquettes respectants la distance imposé par la borne k.
-        couples_etiquettes_possibles = [(i, j) for i in range(1, n + 1) for j in range(1, n + 1) if (i != j) and dist_cyclique(i,j)<=k]
+        # Définition des couples d'étiquettes respectants la distance imposé par la borne k.
+        couples_etiquettes_possibles = [(i, j) for i in range(1, n + 1) for j in range(1, n + 1) if
+                                        (i != j) and dist_cyclique(i, j) <= k]
 
-        #Définition des contraintes
+        # Définition des contraintes
         satisfy(
-            AllDifferent(x), #[x in permutations]
+            AllDifferent(x),  # [x in permutations]
             (x[0] == 1),
-            [ (x[u-1], x[v-1]) in couples_etiquettes_possibles for (u,v) in aretes ]
+            [(x[u - 1], x[v - 1]) in couples_etiquettes_possibles for (u, v) in aretes]
         )
 
-        #Résolution
-        result = solve()
+        # Résolution
+        result = solve(solver="ACE")
 
         if result is SAT:
-            if trace : print("Sat pour", k)
+            if trace: print("Sat pour", k)
             old_k = k
             old_etiquettes = values(x)
-            k_high = k-1
+            k_high = k - 1
             k = k_low + k_high // 2
 
         elif result is UNSAT:
-            if trace : print("Unsat : problème non résolu pour", k)
+            if trace: print("Unsat : problème non résolu pour", k)
             k_low = k + 1
             k = k_low + k_high // 2
         else:
-            if trace : print("Pas de retour du solveur. ")
+            if trace: print("Pas de retour du solveur. ")
             sys.exit(2)
 
-        clear() #Réinitialise les éléments pycsp3 pour pouvoir relancer
+        clear()  # Réinitialise les éléments pycsp3 pour pouvoir relancer
 
     if k == -1:
         sys.exit(1)
     else:
         # Affichage du résultat
-        if trace:
-            print("Valeurs des étiquettes :")
-            i = 1
-            for e in old_etiquettes:
-                print("Sommet v_" + str(i) + " -> Étiquette", e)
-                i += 1
+        print("Valeurs des étiquettes :")
+        i = 1
+        for e in old_etiquettes:
+            print("Sommet v_" + str(i) + " -> Étiquette", e)
+            i += 1
 
-            print("Valeur du cyclique bandwith pour ce nommage :",
-                  max([dist_cyclique(old_etiquettes[u - 1], old_etiquettes[v - 1]) for (u, v) in aretes]))
-            print("k trouvé :", old_k)
+        print("CYCLIC_BANDWITDH :", max([dist_cyclique(old_etiquettes[u - 1], old_etiquettes[v - 1]) for (u, v) in aretes]))
         sys.exit(0)
