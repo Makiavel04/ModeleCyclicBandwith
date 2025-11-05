@@ -46,10 +46,27 @@ def x(i, j):
     Calcul un identifiant unique pour un x_ij
     :param i: sommet v_i
     :param j: valeur de l'étiquette
-    :return: identifiant du booléen représentant la possibilité d'avoir l'étiquette j sur v_i
+    :return: identifiant du x_ij
     """
-    return n * (i - 1) + j
+    return n * (i - 1) + j# 1..n^2
 
+def s(i, j):
+    """
+    Calcul un identifiant unique pour un s_ij
+    :param i: sommet v_i
+    :param j: valeur de l'étiquette
+    :return: identifiant du s_ij
+    """
+    return n*n + n*(i - 1)+j # n^2+1 .. 2*n^2
+
+def t(i, j):
+    """
+    Calcul un identifiant unique pour un t_ij
+    :param i: sommet v_i
+    :param j: valeur de l'étiquette
+    :return: identifiant du t_ij
+    """
+    return 2*n*n + n*(i-1) + j    # 2*n^2+1 .. 3*n^2
 
 def optimiser_k(sommets, aretes):
     """
@@ -95,6 +112,12 @@ if __name__ == "__main__":
         default="testSimple.mtx.rnd",
         help="Nom du fichier à traiter (défaut : testSimple.mtx.rnd)")
 
+    # Option pour spécifier la borne k
+    parser.add_argument(
+        "-k", "--kval",
+        default=None,
+        help="Borne de satisfaction du cyclic bandwith (défaut : n/2")
+
     # Attribue les arguments
     args = parser.parse_args()
     trace: bool = args.trace
@@ -108,79 +131,53 @@ if __name__ == "__main__":
         print("sommets (" + str(n) + ") :", sommets)
         print("aretes :", aretes)
 
-    tmp = []
-    k = optimiser_k(sommets, aretes)  # Borne de départ
-    old_k = -1
-    old_etiquettes = []
-    limite = False
+    cnf = CNF()
+    k = int(args.kval) if args.kval is not None else optimiser_k(sommets,aretes)  # Si on a definit le k dans les arguments on prend cette valeur sinon on met une valeur optimisée
 
     # 1-Une seule étiquette par sommets
     for i in sommets:  # Pour tous les sommets v_i
         # Au moins une étiquette par sommet
-        tmp.append([x(i, j) for j in range(1, n + 1)])
+        cnf.append([x(i, j) for j in range(1, n + 1)])
 
         # Au maximum une étiquette par sommet
-        # On fait tous les couples de valeurs de l'etiquette de v_i, et on vérifie qu'au moins une valeur du couple n'est pas séléctionnée. Pour éviter d'avoir 2 valeurs d'étiquettes sur v_i
-        for j in range(1, n + 1):
-            for j2 in range(j + 1, n + 1):
-                tmp.append([-x(i, j), -x(i, j2)])
+        cnf.append([-x(i,1), s(i,1)])
+        for j in range (2, n+1):
+            cnf.append([-s(i,j-1), s(i,j)])
+            cnf.append([-x(i,j), s(i,j)])
+            cnf.append([-x(i,j), -s(i,j-1)])
 
     # 2-Toutes les étiquettes sont différentes
     for j in range(1, n + 1):  # Pour toutes les valeurs d'étiquettes j
-        tmp.append([x(i, j) for i in range(1, n + 1)])  # Toutes les étiquettes ont au moins un noeud
-        for i in range(1, n + 1):
-            for i2 in range(i + 1, n + 1):
-                tmp.append([-x(i, j), -x(i2, j)])
+        cnf.append([x(i, j) for i in range(1, n + 1)])  # Toutes les étiquettes ont au moins un sommet
 
-    # 4-Rompre les symétries
-    tmp.append([x(1, 1)])
+        #Au max une seule étiquette j
+        cnf.append([-x(1,j), t(1,j)])
+        for i in range(2, n+1):
+            cnf.append([-t(i-1,j), t(i,j)])
+            cnf.append([-x(i,j), t(i,j)])
+            cnf.append([-x(i,j), -t(i-1,j)])
 
-    while not limite:
-        cnf = CNF()
+    # 3-Valeur de cyclic bandwidth
+    for j in range(1, n + 1):
+        for m in range(1, n + 1):
+            if j != m and dist_cyclique(j,m) > k:  # Pour toutes les paires d'etiquettes ne respectant la distance cyclique, on empeche les sommets des arêtes d'avoir ces paires d'étiquettes.
+                for i, l in aretes:
+                    cnf.append([-x(i, j), -x(l, m)])
 
-        for clause in tmp:
-            cnf.append(clause)
+    solver = Glucose3()
 
-        # 3-Valeur de cyclic bandwidth
-        for j in range(1, n + 1):
-            for m in range(1, n + 1):
-                if j != m and dist_cyclique(j,
-                                            m) > k:  # Pour toutes les paires d'etiquettes ne respectant la distance cyclique, on empeche les sommets des arêtes d'avoir ces paires d'étiquettes.
-                    for i, l in aretes:
-                        cnf.append([-x(i, j), -x(l, m)])
+    # Ajouter toutes les clauses du CNF
+    for clause in cnf.clauses:
+        solver.add_clause(clause)
 
-        # 4-Rompre les symétries
-        cnf.append([x(1, 1)])
-
-        solver = Glucose3()
-
-        # Ajouter toutes les clauses du CNF
-        for clause in cnf.clauses:
-            solver.add_clause(clause)
-
-        sat = solver.solve()
-
-        if sat:
-            if trace:
-                print("sat pour", k)
-            old_k = k
-            old_etiquettes = solver.get_model()  # retourne une liste d'entiers : positif = variable vraie, négatif = fausse
-            if k <= 1:
-                limite = True
-            else:
-                k = k - 1
-
-        else:
-            if trace: print("insatisfiable pour", k)
-            limite = True
-
-    if old_k == -1:
-        sys.exit(1)
-    else:
+    sat = solver.solve()
+    if sat:
+        print("SATISFIABLE !")
+        model = solver.get_model()  # retourne une liste d'entiers : positif = variable vraie, négatif = fausse
         # Extraire les étiquettes assignées
         etiquettes = {}
-        for v in old_etiquettes:
-            if v > 0:  # variables vraies
+        for v in model:
+            if v > 0 and v <= n*n:  # variables x vraies
                 # Décoder i et j depuis x(i,j)
                 i = (v - 1) // n + 1
                 j = (v - 1) % n + 1
@@ -189,4 +186,7 @@ if __name__ == "__main__":
         for i in sorted(etiquettes.keys()):
             print("Sommet v_" + str(i) + " -> Étiquette", etiquettes[i])
         print("CYCLIC_BANDWIDTH :", max([dist_cyclique(etiquettes[u], etiquettes[v]) for u,v in aretes]))
-        sys.exit(0)
+        sys.exit(0)  # Code retour ok
+    else:
+        if trace: print("INSATISFIABLE")
+        sys.exit(1)  # Code retour insatisfiable

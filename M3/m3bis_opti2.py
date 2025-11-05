@@ -46,10 +46,27 @@ def x(i, j):
     Calcul un identifiant unique pour un x_ij
     :param i: sommet v_i
     :param j: valeur de l'étiquette
-    :return: identifiant du booléen représentant la possibilité d'avoir l'étiquette j sur v_i
+    :return: identifiant du x_ij
     """
-    return n * (i - 1) + j
+    return n * (i - 1) + j# 1..n^2
 
+def s(i, j):
+    """
+    Calcul un identifiant unique pour un s_ij
+    :param i: sommet v_i
+    :param j: valeur de l'étiquette
+    :return: identifiant du s_ij
+    """
+    return n*n + n*(i - 1)+j # n^2+1 .. 2*n^2
+
+def t(i, j):
+    """
+    Calcul un identifiant unique pour un t_ij
+    :param i: sommet v_i
+    :param j: valeur de l'étiquette
+    :return: identifiant du t_ij
+    """
+    return 2*n*n + n*(i-1) + j    # 2*n^2+1 .. 3*n^2
 
 def optimiser_k(sommets, aretes):
     """
@@ -95,9 +112,15 @@ if __name__ == "__main__":
         default="testSimple.mtx.rnd",
         help="Nom du fichier à traiter (défaut : testSimple.mtx.rnd)")
 
+    # Option pour spécifier la borne k
+    parser.add_argument(
+        "-k", "--kval",
+        default=None,
+        help="Borne de satisfaction du cyclic bandwith (défaut : n/2")
+
     # Attribue les arguments
     args = parser.parse_args()
-    trace: bool = args.trace
+    trace: bool = True #args.trace
     nomFichier: str = args.fichier
 
     # Lecture du graphe
@@ -109,10 +132,11 @@ if __name__ == "__main__":
         print("aretes :", aretes)
 
     tmp = []
-    k = optimiser_k(sommets, aretes)  # Borne de départ
+    k_low = 1
+    k_high = optimiser_k(sommets, aretes)
+    k = (k_low + k_high) // 2  # Borne de départ
     old_k = -1
     old_etiquettes = []
-    limite = False
 
     # 1-Une seule étiquette par sommets
     for i in sommets:  # Pour tous les sommets v_i
@@ -120,37 +144,38 @@ if __name__ == "__main__":
         tmp.append([x(i, j) for j in range(1, n + 1)])
 
         # Au maximum une étiquette par sommet
-        # On fait tous les couples de valeurs de l'etiquette de v_i, et on vérifie qu'au moins une valeur du couple n'est pas séléctionnée. Pour éviter d'avoir 2 valeurs d'étiquettes sur v_i
-        for j in range(1, n + 1):
-            for j2 in range(j + 1, n + 1):
-                tmp.append([-x(i, j), -x(i, j2)])
+        tmp.append([-x(i,1), s(i,1)])
+        for j in range (2, n+1):
+            tmp.append([-s(i,j-1), s(i,j)])
+            tmp.append([-x(i,j), s(i,j)])
+            tmp.append([-x(i,j), -s(i,j-1)])
 
     # 2-Toutes les étiquettes sont différentes
     for j in range(1, n + 1):  # Pour toutes les valeurs d'étiquettes j
-        tmp.append([x(i, j) for i in range(1, n + 1)])  # Toutes les étiquettes ont au moins un noeud
-        for i in range(1, n + 1):
-            for i2 in range(i + 1, n + 1):
-                tmp.append([-x(i, j), -x(i2, j)])
+        tmp.append([x(i, j) for i in range(1, n + 1)])  # Toutes les étiquettes ont au moins un sommet
+
+        #Au max une seule étiquette j
+        tmp.append([-x(1,j), t(1,j)])
+        for i in range(2, n+1):
+            tmp.append([-t(i-1,j), t(i,j)])
+            tmp.append([-x(i,j), t(i,j)])
+            tmp.append([-x(i,j), -t(i-1,j)])
 
     # 4-Rompre les symétries
     tmp.append([x(1, 1)])
 
-    while not limite:
+    while k >= 1 and k_low <= k_high:
         cnf = CNF()
 
-        for clause in tmp:
+        for clause in tmp:  # Ces clauses ne bougeant pas, on ne les calculent qu'une seule fois.
             cnf.append(clause)
 
         # 3-Valeur de cyclic bandwidth
         for j in range(1, n + 1):
             for m in range(1, n + 1):
-                if j != m and dist_cyclique(j,
-                                            m) > k:  # Pour toutes les paires d'etiquettes ne respectant la distance cyclique, on empeche les sommets des arêtes d'avoir ces paires d'étiquettes.
+                if j != m and dist_cyclique(j,m) > k:  # Pour toutes les paires d'etiquettes ne respectant la distance cyclique, on empeche les sommets des arêtes d'avoir ces paires d'étiquettes.
                     for i, l in aretes:
                         cnf.append([-x(i, j), -x(l, m)])
-
-        # 4-Rompre les symétries
-        cnf.append([x(1, 1)])
 
         solver = Glucose3()
 
@@ -165,22 +190,20 @@ if __name__ == "__main__":
                 print("sat pour", k)
             old_k = k
             old_etiquettes = solver.get_model()  # retourne une liste d'entiers : positif = variable vraie, négatif = fausse
-            if k <= 1:
-                limite = True
-            else:
-                k = k - 1
-
+            k_high = k - 1
+            k = (k_low + k_high) // 2
         else:
             if trace: print("insatisfiable pour", k)
-            limite = True
+            k_low = k + 1
+            k = (k_low + k_high) // 2
 
-    if old_k == -1:
+    if k == -1:
         sys.exit(1)
     else:
         # Extraire les étiquettes assignées
         etiquettes = {}
         for v in old_etiquettes:
-            if v > 0:  # variables vraies
+            if v > 0 and v <= n * n:  # variables x vraies
                 # Décoder i et j depuis x(i,j)
                 i = (v - 1) // n + 1
                 j = (v - 1) % n + 1
@@ -189,4 +212,4 @@ if __name__ == "__main__":
         for i in sorted(etiquettes.keys()):
             print("Sommet v_" + str(i) + " -> Étiquette", etiquettes[i])
         print("CYCLIC_BANDWIDTH :", max([dist_cyclique(etiquettes[u], etiquettes[v]) for u,v in aretes]))
-        sys.exit(0)
+        sys.exit(0)  # Code retour ok

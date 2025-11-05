@@ -53,85 +53,31 @@ def x(i, j):
 
 def optimiser_k(sommets, aretes):
     """
-    Calculer une borne supérieur optimisée du CB optimal, en O(m+n).
+    Calculer une borne supérieur optimisée du CB optimal, pour certains types de graphes.
+
     :param sommets: Sommets du graphe
     :param aretes: Arêtes du graphe
     :return: borne supérieur optimisée du CB optimal
     """
     n = len(sommets)
-    m = len(aretes)
 
     # Calcul du degré et construction de la liste d'adjacence
     degre = [0] * n
-    voisins = [[] for _ in range(n)]
     for (u, v) in aretes:
         degre[u - 1] += 1
         degre[v - 1] += 1
-        voisins[u - 1].append(v - 1)
-        voisins[v - 1].append(u - 1)
 
     nb_deg_1 = degre.count(1)
     nb_deg_2 = degre.count(2)
-    max_deg = max(degre)
 
     # Cas spéciaux
-    if all(d == n - 1 for d in degre):  # clique
-        return n // 2
-
-    if nb_deg_1 == n - 1 and max_deg == n - 1:  # étoile
-        return n // 2
-
     if nb_deg_1 == 2 and nb_deg_2 == n - 2:  # chemin simple / chaîne
         return 1
 
     if nb_deg_2 == n:  # cycle
         return 1
 
-    if m == n - 1:  # arbre général
-        return demi_diametre_arrondi(voisins)
-
-    # Cas général : heuristique selon densité
-    densite = (2 * m) / (n * (n - 1))
-    if densite < 0.1:
-        k = math.ceil(math.log2(n))
-    elif densite < 0.5:
-        k = math.ceil(n / 4)
-    else:
-        k = math.ceil(n / 2)
-
-    return k
-
-
-def demi_diametre_arrondi(voisins):
-    """
-    Calcule le diamètre du graphe (arbre) et retourne la moitié du diamètre arrondie à l'entier supérieur, pour servir de borne k pour le cyclic bandwidth.
-
-    :param voisins :
-    :return le diamètre du graphe, divisé par 2 et arrondi au supérieur
-    """
-
-    def bfs(sommet_depart: int) -> tuple[int, int]:
-        n = len(voisins)
-        distance = [-1] * n
-        distance[sommet_depart] = 0
-        file = deque([sommet_depart])
-        sommet_le_plus_loin = (0, sommet_depart)
-
-        while file:
-            v = file.popleft()
-            for w in voisins[v]:
-                if distance[w] == -1:
-                    distance[w] = distance[v] + 1
-                    file.append(w)
-                    if distance[w] > sommet_le_plus_loin[0]:
-                        sommet_le_plus_loin = (distance[w], w)
-
-        return sommet_le_plus_loin
-
-    # BFS deux fois pour trouver le diamètre
-    _, extremite = bfs(0)
-    diametre, _ = bfs(extremite)
-    return math.ceil(diametre / 2)
+    return n // 2  # Pour tous les autres cas notamment : clique, étoile (, bipartis complet équilibré...
 
 
 if __name__ == "__main__":
@@ -169,7 +115,7 @@ if __name__ == "__main__":
         print("aretes :", aretes)
 
     cnf = CNF()
-    k = args.kval if args.kval is not None else optimiser_k(sommets,aretes)  # Si on a definit le k dans les arguments on prend cette valeur sinon on met une valeur optimisée
+    k = int(args.kval) if args.kval is not None else optimiser_k(sommets,aretes)  # Si on a definit le k dans les arguments on prend cette valeur sinon on met une valeur optimisée
 
     # 1-Une seule étiquette par sommets
     for i in sommets:  # Pour tous les sommets v_i
@@ -192,8 +138,7 @@ if __name__ == "__main__":
     # 3-Valeur de cyclic bandwidth
     for j in range(1, n + 1):
         for m in range(1, n + 1):
-            if j != m and dist_cyclique(j,
-                                        m) > k:  # Pour toutes les paires d'etiquettes ne respectant la distance cyclique, on empeche les sommets des arêtes d'avoir ces paires d'étiquettes.
+            if j != m and dist_cyclique(j,m) > k:  # Pour toutes les paires d'etiquettes ne respectant la distance cyclique, on empeche les sommets des arêtes d'avoir ces paires d'étiquettes.
                 for i, l in aretes:
                     cnf.append([-x(i, j), -x(l, m)])
 
